@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MATCH Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .filter-buttons {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .filter-buttons button {
+            margin: 5px;
+            padding: 10px 20px;
+            background-color: #90CAF9;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .filter-buttons button:hover {
+            background-color: #42A5F5;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        .item {
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            text-align: center;
+            overflow: hidden;
+        }
+        .item img {
+            width: 100%;
+            height: auto;
+            max-height: 200px;
+            object-fit: contain;
+        }
+        .item button {
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #90CAF9;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .item button:hover {
+            background-color: #42A5F5;
+        }
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(255, 255, 255, 0.2);
+        }
+        .modal .close-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .modal .close-button:hover {
+            background: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="dropdown">
+            <label for="itemsPerPage">Items:</label>
+            <select id="itemsPerPage" onchange="updateItemsPerPage()">
+                <option value="12">12</option>
+                <option value="24" selected>24</option>
+                <option value="48">48</option>
+                <option value="96">96</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Filter Buttons -->
+    <div class="filter-buttons">
+        <button onclick="filterGIFs('dcq')">DCQ</button>
+        <button onclick="filterGIFs('gag')">GAG</button>
+        <button onclick="filterGIFs('lag')">LAG</button>
+        <button onclick="filterGIFs('glag_core')">GLAG_CORE</button>
+    </div>
+
+    <!-- Items Container -->
+    <div class="container" id="itemContainer"></div>
+
+    <!-- Modal for Enlarged GIF -->
+    <div class="modal" id="gifModal">
+        <button class="close-button" onclick="closeModal()">×</button>
+        <img src="" alt="Enlarged GIF" id="modalImage">
+    </div>
+
+    <script>
+        // **GIF IDs for each category**
+        const gifIDs = {
+            dcq: [
+                "03bb3ecc-a744-4e57-8220-4e62bf80ac54_1",
+                "071044db-0f1a-4c8c-b69a-32a916ec0cbd_1",
+                "0c0d9cc0-a98a-43f2-8e96-11d4237c1500_2",
+                "0e940e8c-9fea-470a-bf75-6b0857eb5ed5_3",
+                "116da834-116a-4829-bdb5-909c1a7d9bfc_2",
+                "1466ac0c-9914-4c1e-8b34-4ea74e486085_2",
+                "14c62371-b638-48d3-967a-f9a3c99fc62e_1",
+                "1a4a2ae7-9f1e-41d9-ad52-82d6e27a11bc_1",
+                "1cb9979e-8fc8-4e61-babb-ae8622a84348_2",
+                "1f30270e-de4a-4049-b8e2-49ceaffebaa2_1",
+                "1f8b5b4d-a774-4ca6-b3ff-b32bf69e0481_2",
+                "2228605c-aa5c-4fbc-9fa3-def5566a8145_2",
+                "24a9bdb6-2657-4823-aa93-5d39c57aba41_1",
+                "267be889-4310-448b-bff3-359036e55e0c_3",
+                "2a31654f-5cbb-4b20-bcbb-063729b0c155_2",
+                "2a538352-0fe5-43ba-ba68-92e5f1ec5e3e_3",
+                "2af8cdb0-9ae0-444b-8de6-7b543b36c33e_1",
+                "2bfc52e1-6e82-4e6f-bf86-8b0b061aba37_1",
+                "2fcfe275-0643-4312-8a5c-3973956f583d_3",
+                "314a37fd-53e3-40c8-a0f4-e6968e9f312f_1",
+                "31bc065b-df54-471f-bb18-cad8cab3baeb_1",
+                "33927aca-655f-4340-bc74-febb328ebe8f_3",
+                "341573f7-272b-451b-a4f2-e1aa0dc3b665_2",
+                "349acf20-7179-42b2-9a96-12078b16b9f9_3",
+                "352d70d8-274f-4159-9acc-3f50672a29eb_1",
+                "35366a51-803e-4a1c-8f99-ee4c110e450d_2",
+                "3691f27e-74a0-46c6-abc0-c1f486cc7524_2",
+                "3b443180-8165-4d56-92f3-f77925e5c304_3",
+                "3e4b2b61-4de8-4c1a-91aa-634bcbcf65ee_3",
+                "3e7a7c61-75d0-4e49-9ecc-850ef1498049_1",
+                "41684806-6c67-48a6-a2d6-0acec57ba6ec_1",
+                "4578600b-232d-4bf4-99f1-aca0a29f3432_1",
+                "45fbab3a-4f22-4e70-9d37-35329b5127bb_1",
+                "463fdbb4-67e3-4e5d-af56-b4397fa71bf0_2",
+                "4652c16c-7179-4576-a91f-27bebefa4ef2_3",
+                "4715c9b7-d676-4727-af16-8cc10ca6de0b_3",
+                "4fe02729-507f-4c2e-b02b-7fa60cf24b41_3",
+                "514481e8-fa68-4c4d-aced-b196e0267d2d_2",
+                "529b4ff9-1150-46fe-839c-240cdd199c18_3",
+                "52d9e964-5726-4498-b2fa-0506f2fe587d_1",
+                "56442162-ca28-4a66-a02d-a2711b3bc836_1",
+                "5bf7eae5-d58d-4792-b5c9-e5db93b08bf3_2",
+                "5c75d809-7c68-45fc-9262-12bb7785b9ca_2",
+                "5ecdee7a-6e50-4bd1-9f7e-f68671fb26d0_3",
+                "63967366-e11c-49eb-b4a5-f4bd382b2ecc_3",
+                "647c6d78-5eef-4868-96db-c8f6e49f207f_2",
+                "6cd483b1-4cda-4a74-ad28-dc599112ef7a_2",
+                "6e835f7c-cf85-4d8c-ad5b-53cd9b6c0e22_3",
+                "72f21058-ee5a-472b-918d-9e9b6dd46287_3",
+                "74dbde6d-698c-4558-a7a2-37f2d341fb22_3",
+                "756a6e4a-c455-4fc6-8c8a-7e2897a39f2e_2",
+                "7b53a4e7-b7ab-4b60-aed8-4fb1485fdb27_2",
+                "7c2ea38a-f8ed-42d7-a1b3-f39cc3a6ae70_2",
+                "81b25b24-995b-4748-93fe-24701a1ee2d8_1",
+                "81cbe7ae-0848-4290-8b13-c828b87fe708_2",
+                "8353783b-2400-4873-b1aa-31ac729c3487_3",
+                "84534bbf-089a-4199-adbe-85e1ead2682e_2",
+                "94e9a6e7-b6fc-446c-9ad9-bb460cca5904_1",
+                "962d3511-1308-462e-8bb1-c044911eca3c_2",
+                "983086f7-ae3c-4bc7-8f98-19b1e62cf8f8_3",
+                "9a07e6ad-e6db-4b61-8f8c-ce2dab8becf0_2",
+                "9bb2982d-a0f5-4ad6-8f5a-af65cc8bfb7e_3",
+                "9cc55fc4-ef01-4d33-a91c-cfe8beece2a5_3",
+                "a225ac61-b139-4c39-8011-342a3285ba89_3",
+                "a41b71f6-8aa7-45c9-9148-a5780da79c30_1",
+                "a41b71f6-8aa7-45c9-9148-a5780da79c30_3",
+                "a6e4cd3a-fdfe-4b91-97a1-450ea60b7baf_1",
+                "a6f60f47-b320-4c7f-a2d4-c8094e903e53_1",
+                "a8b8556b-2ab9-45ad-9d8c-ae3758403078_1",
+                "aa93a69b-961f-4f3a-bd97-7cc2e28b0f2a_3",
+                "ac62aa4f-d0cd-431b-894e-cc5e24660e2e_2",
+                "ad4c9014-5947-4047-8923-cfa0c1cc2ffa_2",
+                "af5ff807-00fb-4ebe-972c-faea9cae4626_2",
+                "bc955e4e-87fa-4508-b548-f95bf229630c_3",
+                "c293aef7-c806-4ed3-85a1-b21d1344031d_1",
+                "c2ee0608-571e-4625-8db9-68838bbf3fdc_3",
+                "c434822b-6aa3-481a-8eab-ad6d1bc52aad_2",
+                "c5c93d5e-374c-440d-9555-e5d506713c43_2",
+                "c5d8e8dd-19f5-4e38-9bbb-e94e04bd2b4b_2",
+                "cc884190-b9bf-421e-9fb1-e2b4a1ee014b_2",
+                "d00308be-3bb1-47a2-bea5-6fe35968ffd4_1",
+                "d502ceab-1c1a-4a76-b56a-893eb45f5ff6_3",
+                "d79aa223-5429-4b48-aabe-1378d3daaad3_3",
+                "d84a07c9-07b4-4127-afab-fd2bacff0a88_1",
+                "daeaa2c2-34d1-447f-916d-8cfdd056210e_1",
+                "dd68f2a3-cea5-424b-b2f6-3a84e720b234_1",
+                "e54e45b2-7df9-4827-a35c-eeeb9391fab1_1",
+                "e6d1840a-5956-43a1-9bc4-639a4ba5f956_2",
+                "e77a77d8-3dd2-4012-a9e2-e1d2ad448e80_1",
+                "eb739af5-cf74-407d-a128-ae8e71a50f01_1",
+                "eca5853b-5ec4-40fd-9fe9-64
